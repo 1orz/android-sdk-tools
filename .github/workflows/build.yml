@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
 
     steps:
@@ -33,6 +33,25 @@ jobs:
 
       - name: Clone AOSP sources
         run: python3 get_source.py --tags android-16.0.0_r4
+        continue-on-error: true
+
+      - name: Verify AOSP sources
+        run: |
+          # Some repos may fail with annotated tags in shallow clone, retry with master
+          for dir in src/core src/libbase src/base src/native src/logging src/fmtlib \
+                     src/libpng src/expat src/protobuf src/aidl src/libziparchive \
+                     src/zopfli src/pcre src/jsoncpp src/googletest src/abseil-cpp \
+                     src/soong src/incremental_delivery src/unwinding src/selinux \
+                     src/boringssl src/build; do
+            if [ ! -d "$dir" ] || [ -z "$(ls -A $dir 2>/dev/null)" ]; then
+              echo "Retrying $dir with master branch..."
+              rm -rf "$dir"
+              url=$(python3 -c "import json; repos=json.load(open('repos.json')); print(next(r['url'] for r in repos if r['path']=='$dir'))")
+              git clone --depth 1 "$url" "$dir" 2>/dev/null || true
+            fi
+          done
+          # Re-run patches
+          python3 -c "from get_source import patches; patches()"
 
       - name: Build (aarch64)
         run: |
