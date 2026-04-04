@@ -36,10 +36,9 @@ jobs:
       - name: Apply protobuf patch and build host protoc
         run: |
           # Apply the protobuf CMakeLists.txt patch (adds android/config.h include path)
-          cd src/protobuf
-          patch -p0 < ../../patches/protobuf_CMakeLists.txt.patch || true
+          patch -p1 < patches/protobuf_CMakeLists.txt.patch || true
 
-          cd cmake
+          cd src/protobuf/cmake
           mkdir build-host && cd build-host
           cmake -GNinja \
             -Dprotobuf_BUILD_TESTS=OFF \
