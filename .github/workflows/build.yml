@@ -33,9 +33,13 @@ jobs:
       - name: Clone AOSP sources
         run: python3 get_source.py --tags platform-tools-35.0.2
 
-      - name: Build host protoc
+      - name: Apply protobuf patch and build host protoc
         run: |
-          cd src/protobuf/cmake
+          # Apply the protobuf CMakeLists.txt patch (adds android/config.h include path)
+          cd src/protobuf
+          patch -p0 < ../../patches/protobuf_CMakeLists.txt.patch || true
+
+          cd cmake
           mkdir build-host && cd build-host
           cmake -GNinja \
             -Dprotobuf_BUILD_TESTS=OFF \
