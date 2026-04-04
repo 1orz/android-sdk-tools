@@ -35,11 +35,15 @@ jobs:
 
       - name: Build host protoc
         run: |
-          cd src/protobuf
+          cd src/protobuf/cmake
           mkdir build-host && cd build-host
-          cmake -GNinja -Dprotobuf_BUILD_TESTS=OFF ..
+          cmake -GNinja \
+            -Dprotobuf_BUILD_TESTS=OFF \
+            -DCMAKE_CXX_STANDARD=17 \
+            ..
           ninja -j$(nproc) protoc
           echo "PROTOC_PATH=$(pwd)/protoc" >> $GITHUB_ENV
+          ./protoc --version
 
       - name: Build (aarch64)
         run: |
@@ -47,7 +51,7 @@ jobs:
             --ndk $NDK_HOME \
             --abi arm64-v8a \
             --api 30 \
-            --target all \
+            --target aapt2 \
             --protoc $PROTOC_PATH
 
       - name: Verify binaries
