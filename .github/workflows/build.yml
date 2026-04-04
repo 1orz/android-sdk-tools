@@ -54,7 +54,7 @@ jobs:
             --ndk $NDK_HOME \
             --abi arm64-v8a \
             --api 30 \
-            --target aapt2 \
+            --target all \
             --protoc $PROTOC_PATH
 
       - name: Verify binaries
