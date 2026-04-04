@@ -1,0 +1,64 @@
+name: Build Android SDK Tools (aarch64)
+
+on:
+  push:
+    branches: [master]
+    tags: ['*']
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            cmake ninja-build python3 python3-requests \
+            bison flex golang protobuf-compiler \
+            libprotobuf-dev
+
+      - name: Setup Android NDK
+        run: |
+          wget -q https://dl.google.com/android/repository/android-ndk-r28c-linux.zip -O /tmp/ndk.zip
+          unzip -q /tmp/ndk.zip -d $HOME
+          echo "NDK_HOME=$HOME/android-ndk-r28c" >> $GITHUB_ENV
+
+      - name: Clone AOSP sources
+        run: python3 get_source.py --tags android-16.0.0_r4
+
+      - name: Build (aarch64)
+        run: |
+          python3 build.py \
+            --ndk $NDK_HOME \
+            --abi arm64-v8a \
+            --api 30 \
+            --target all \
+            --protoc $(which protoc)
+
+      - name: Verify binaries
+        run: |
+          for bin in aapt aapt2 aidl zipalign dexdump; do
+            echo -n "$bin: "
+            file build/bin/build-tools/$bin
+          done
+          build/bin/build-tools/aapt2 version || true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-sdk-tools-aarch64
+          path: build/android-sdk-tools-aarch64.zip
+
+      - name: Create release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/android-sdk-tools-aarch64.zip

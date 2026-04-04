@@ -87,7 +87,7 @@ def check(command):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tags", default="master", help="Specify the Git cloning tags or branch")
+    parser.add_argument("--tags", default="android-16.0.0_r4", help="Specify the Git cloning tags or branch")
     args = parser.parse_args()
     
     # check necessary packages
