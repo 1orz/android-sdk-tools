@@ -23,7 +23,7 @@ jobs:
           - abi: x86_64
             arch: x86_64
           - abi: x86
-            arch: x86
+            arch: i686
 
     steps:
       - name: Checkout
@@ -81,11 +81,18 @@ jobs:
             file build/bin/platform-tools/$bin 2>/dev/null || echo "MISSING"
           done
 
+      - name: Rename zip
+        run: |
+          # build.py outputs: build/android-sdk-tools-{arch}.zip
+          # Rename to consistent name with "static" prefix matching lzhiyong convention
+          mv build/android-sdk-tools-${{ matrix.arch }}.zip \
+             build/android-sdk-tools-static-${{ matrix.arch }}.zip
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: android-sdk-tools-static-${{ matrix.arch }}
-          path: build/android-sdk-tools-${{ matrix.arch }}.zip
+          path: build/android-sdk-tools-static-${{ matrix.arch }}.zip
 
   release:
     needs: build
