@@ -60,27 +60,38 @@ jobs:
           echo "PROTOC_PATH=$(pwd)/protoc" >> $GITHUB_ENV
           ./protoc --version
 
-      - name: Build (${{ matrix.arch }})
+      - name: Configure
         run: |
-          python3 build.py \
-            --ndk $NDK_HOME \
-            --abi ${{ matrix.abi }} \
-            --api 35 \
-            --protoc $PROTOC_PATH
+          cmake -GNinja -B build \
+            -DANDROID_NDK=$NDK_HOME \
+            -DCMAKE_TOOLCHAIN_FILE=$NDK_HOME/build/cmake/android.toolchain.cmake \
+            -DANDROID_PLATFORM=android-30 \
+            -DCMAKE_ANDROID_ARCH_ABI=${{ matrix.abi }} \
+            -DANDROID_ABI=${{ matrix.abi }} \
+            -DCMAKE_SYSTEM_NAME=Android \
+            -Dprotobuf_BUILD_TESTS=OFF \
+            -DABSL_PROPAGATE_CXX_STD=ON \
+            -DANDROID_ARM_NEON=ON \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DPROTOC_PATH=$PROTOC_PATH
 
-      - name: Verify binaries
+      - name: Build build-tools (${{ matrix.arch }})
+        run: ninja -C build -j$(nproc) aapt aapt2 aidl zipalign dexdump split-select
+
+      - name: Strip and package
         run: |
-          echo "=== Build tools ==="
+          STRIP=$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip
+          mkdir -p build/bin/build-tools
           for bin in aapt aapt2 aidl zipalign dexdump split-select; do
-            printf "%-15s" "$bin:"
-            file build/bin/build-tools/$bin 2>/dev/null || echo "MISSING"
+            if [ -f "build/bin/$bin" ]; then
+              cp "build/bin/$bin" "build/bin/build-tools/"
+              $STRIP -g "build/bin/build-tools/$bin"
+            fi
           done
-          echo ""
-          echo "=== Platform tools ==="
-          for bin in adb fastboot sqlite3 etc1tool hprof-conv e2fsdroid mke2fs make_f2fs; do
-            printf "%-15s" "$bin:"
-            file build/bin/platform-tools/$bin 2>/dev/null || echo "MISSING"
-          done
+          echo "=== Build tools ==="
+          ls -la build/bin/build-tools/
+          file build/bin/build-tools/*
+          cd build/bin && zip -r ../android-sdk-tools-${{ matrix.arch }}.zip build-tools/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
