@@ -46,10 +46,18 @@ jobs:
       - name: Clone AOSP sources
         run: python3 get_source.py --tags platform-tools-35.0.2
 
-      - name: Apply protobuf patch and build host protoc
+      - name: Apply patches
         run: |
           patch -p1 < patches/protobuf_CMakeLists.txt.patch || true
 
+          # Fix NDK r28c compatibility: ACgroupController_getMaxActivationDepth
+          # is marked as Android 36+ in NDK r28c headers, but the AOSP source
+          # from platform-tools-35.0.2 calls it unconditionally.
+          sed -i 's/max_activation_depth = ACgroupController_getMaxActivationDepth(controller);/\n#if __ANDROID_API__ >= 36\n                max_activation_depth = ACgroupController_getMaxActivationDepth(controller);\n#endif/' \
+            src/core/libprocessgroup/cgroup_map.cpp
+
+      - name: Build host protoc
+        run: |
           cd src/protobuf/cmake
           mkdir build-host && cd build-host
           cmake -GNinja \
