@@ -14,6 +14,7 @@ jobs:
     timeout-minutes: 120
 
     strategy:
+      fail-fast: false
       matrix:
         include:
           - abi: arm64-v8a
@@ -64,7 +65,7 @@ jobs:
           python3 build.py \
             --ndk $NDK_HOME \
             --abi ${{ matrix.abi }} \
-            --api 36 \
+            --api 35 \
             --protoc $PROTOC_PATH
 
       - name: Verify binaries
@@ -81,18 +82,11 @@ jobs:
             file build/bin/platform-tools/$bin 2>/dev/null || echo "MISSING"
           done
 
-      - name: Rename zip
-        run: |
-          # build.py outputs: build/android-sdk-tools-{arch}.zip
-          # Rename to consistent name with "static" prefix matching lzhiyong convention
-          mv build/android-sdk-tools-${{ matrix.arch }}.zip \
-             build/android-sdk-tools-static-${{ matrix.arch }}.zip
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: android-sdk-tools-static-${{ matrix.arch }}
-          path: build/android-sdk-tools-static-${{ matrix.arch }}.zip
+          path: build/android-sdk-tools-${{ matrix.arch }}.zip
 
   release:
     needs: build
