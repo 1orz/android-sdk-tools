@@ -64,7 +64,7 @@ jobs:
           python3 build.py \
             --ndk $NDK_HOME \
             --abi ${{ matrix.abi }} \
-            --api 30 \
+            --api 36 \
             --protoc $PROTOC_PATH
 
       - name: Verify binaries
